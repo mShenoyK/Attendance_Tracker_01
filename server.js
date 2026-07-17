@@ -106,8 +106,9 @@ for (const name of TEAM_MEMBERS) {
 
 // Seed view-only accounts (email pre-set; they set a PIN on first login)
 const VIEWERS = [
-  { email: 'asutosh_kar@infosys.com',   name: 'Asutosh Kar'   },
-  { email: 'kumaran_palani@infosys.com', name: 'Kumaran Palani' },
+  { email: 'asutosh_kar@infosys.com',      name: 'Asutosh Kar'      },
+  { email: 'kumaran_palani@infosys.com',   name: 'Kumaran Palani'   },
+  { email: 'jisha_sasidharan@infosys.com', name: 'Jisha Sasidharan' },
 ];
 for (const v of VIEWERS) {
   if (!db.prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE').get(v.email)) {
