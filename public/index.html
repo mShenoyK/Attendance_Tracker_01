@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Tracker — Infosys</title>
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --wfo:      #16a34a;
+  --wfh:      #2563eb;
+  --leave:    #b45309;
+  --holiday:  #7c3aed;
+  --weekend:  #1e293b;
+  --empty:    #1e293b;
+  --bg:       #0f172a;
+  --surface:  #1e293b;
+  --surface2: #263347;
+  --border:   #334155;
+  --primary:  #3b82f6;
+  --primary-d:#2563eb;
+  --txt:      #f1f5f9;
+  --txt-m:    #94a3b8;
+  --success:  #22c55e;
+  --warn:     #f59e0b;
+  --danger:   #ef4444;
+  --radius:   8px;
+}
+html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; }
+a { color: var(--primary); }
+button { cursor: pointer; font-family: inherit; }
+input, select { font-family: inherit; color: var(--txt); background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; width: 100%; font-size: 14px; outline: none; transition: border-color .2s; }
+input:focus, select:focus { border-color: var(--primary); }
+input[type="password"] { letter-spacing: 4px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius); border: none; font-size: 14px; font-weight: 600; transition: opacity .15s, background .15s; }
+.btn:hover { opacity: .9; }
+.btn-primary  { background: var(--primary); color: #fff; }
+.btn-success  { background: var(--success); color: #fff; }
+.btn-danger   { background: var(--danger); color: #fff; }
+.btn-ghost    { background: var(--surface2); color: var(--txt); border: 1px solid var(--border); }
+.btn-sm       { padding: 5px 12px; font-size: 12px; }
+.pill         { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.pill-ok      { background: #16a34a33; color: #86efac; }
+.pill-warn    { background: #f59e0b33; color: #fcd34d; }
+.pill-red     { background: #ef444433; color: #fca5a5; }
+.hidden { display: none !important; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+
+/* ── Login ─────────────────────────────────────────────────────────────────── */
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-box { width: 100%; max-width: 420px; }
+.login-header { text-align: center; margin-bottom: 32px; }
+.login-header .brand { font-size: 22px; font-weight: 800; color: #0057a8; letter-spacing: 1px; }
+.login-header .sub   { font-size: 12px; color: var(--txt-m); margin-top: 4px; }
+.login-header h2     { margin-top: 18px; font-size: 20px; font-weight: 700; }
+.login-header p      { color: var(--txt-m); margin-top: 4px; font-size: 13px; }
+.login-box .card     { padding: 28px; }
+.form-group          { margin-bottom: 16px; }
+.form-group label    { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--txt-m); text-transform: uppercase; letter-spacing: .5px; }
+.form-group .hint    { font-size: 11px; color: var(--txt-m); margin-top: 4px; }
+.login-actions       { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.sso-badge           { display: flex; align-items: center; gap: 8px; background: #0057a812; border: 1px solid #0057a840; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 20px; font-size: 12px; color: #93c5fd; }
+.sso-badge svg       { flex-shrink: 0; }
+.error-msg           { color: var(--danger); font-size: 12px; margin-top: 6px; display: none; }
+.error-msg.show      { display: block; }
+.select-list { list-style: none; margin-top: 6px; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.select-list li { padding: 10px 14px; cursor: pointer; transition: background .15s; font-size: 13px; }
+.select-list li:hover { background: var(--surface2); }
+.select-list li.selected { background: #2563eb33; color: #93c5fd; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── App Shell ─────────────────────────────────────────────────────────────── */
+#app-screen { display: flex; flex-direction: column; height: 100vh; }
+#app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.header-left  { display: flex; align-items: center; gap: 14px; }
+.app-title    { font-weight: 800; font-size: 16px; }
+.app-title span { color: var(--primary); }
+.month-nav    { display: flex; align-items: center; gap: 6px; }
+.month-nav button { background: var(--surface2); border: 1px solid var(--border); color: var(--txt); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 0; }
+#month-label  { font-weight: 700; font-size: 14px; min-width: 120px; text-align: center; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.user-badge   { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px 4px 4px; }
+.avatar       { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #fff; flex-shrink: 0; }
+.user-name    { font-size: 13px; font-weight: 600; }
+.user-role    { font-size: 10px; color: var(--txt-m); text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── Tab nav ───────────────────────────────────────────────────────────────── */
+#tab-nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 0; padding: 0 20px; flex-shrink: 0; overflow-x: auto; }
+.tab-btn { padding: 12px 16px; border: none; background: transparent; color: var(--txt-m); font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn:hover  { color: var(--txt); }
+
+/* ── Tab content ───────────────────────────────────────────────────────────── */
+#tab-content { flex: 1; overflow: auto; padding: 20px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Calendar grid ──────────────────────────────────────────────────────────── */
+.calendar-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.cal-table      { border-collapse: collapse; min-width: max-content; width: 100%; }
+.cal-table th   { background: var(--surface); padding: 6px 4px; text-align: center; font-size: 11px; font-weight: 700; color: var(--txt-m); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+.cal-table th.name-col { left: 0; z-index: 3; background: var(--surface); min-width: 140px; text-align: left; padding-left: 12px; }
+.cal-table td   { border: 1px solid var(--border); padding: 2px; vertical-align: middle; }
+.cal-table td.name-cell { position: sticky; left: 0; background: var(--surface); z-index: 1; padding: 8px 12px; font-weight: 600; font-size: 13px; white-space: nowrap; min-width: 140px; }
+.cal-table tr:hover td.name-cell { background: var(--surface2); }
+.cal-table .summary-row td { background: var(--bg); font-size: 12px; font-weight: 700; padding: 6px 4px; text-align: center; }
+.cal-table .summary-row td.name-cell { background: var(--bg); }
+.day-header     { min-width: 64px; }
+.day-num        { font-size: 13px; font-weight: 700; line-height: 1; }
+.day-name       { font-size: 10px; color: var(--txt-m); }
+.weekend-col th, .weekend-col td { background: #151d2b !important; opacity: .7; }
+.cell-wrap      { display: flex; align-items: center; justify-content: center; padding: 3px; }
+.status-select  { appearance: none; -webkit-appearance: none; width: 60px; height: 36px; border-radius: 6px; border: none; font-size: 10px; font-weight: 700; text-align: center; cursor: pointer; color: #fff; transition: background .15s; padding: 0 2px; }
+.status-select:disabled { opacity: .45; cursor: not-allowed; }
+.s-empty    { background: #2a3a4a; color: var(--txt-m); }
+.s-WFO      { background: var(--wfo); }
+.s-WFH      { background: var(--wfh); }
+.s-Leave    { background: var(--leave); }
+.s-DC-Holiday { background: var(--holiday); }
+.wfo-badge  { font-size: 12px; font-weight: 800; }
+.weekend-cell { background: #151d2b; color: #4a5568; font-size: 11px; text-align: center; width: 60px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+
+/* ── Legend ────────────────────────────────────────────────────────────────── */
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.legend-dot  { width: 14px; height: 14px; border-radius: 4px; }
+
+/* ── Section header ────────────────────────────────────────────────────────── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.section-title  { font-size: 18px; font-weight: 700; }
+
+/* ── Report tables ──────────────────────────────────────────────────────────── */
+.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.report-table th { background: var(--surface); padding: 10px 12px; text-align: left; font-weight: 700; border-bottom: 1px solid var(--border); color: var(--txt-m); font-size: 11px; text-transform: uppercase; }
+.report-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.report-table tr:hover td { background: var(--surface2); }
+.month-names { font-size: 11px; }
+.met-cell  { color: var(--success); font-weight: 700; }
+.miss-cell { color: var(--danger);  font-weight: 700; }
+
+/* ── Stat cards ─────────────────────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+.stat-val  { font-size: 28px; font-weight: 800; line-height: 1; }
+.stat-lbl  { font-size: 11px; color: var(--txt-m); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── Manage users ───────────────────────────────────────────────────────────── */
+.user-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; flex-wrap: wrap; }
+.user-info { flex: 1; min-width: 0; }
+.user-info .uname { font-weight: 700; font-size: 14px; }
+.user-info .uemail { font-size: 12px; color: var(--txt-m); }
+.user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── Holidays ───────────────────────────────────────────────────────────────── */
+.holiday-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+.holiday-date { font-weight: 700; color: var(--holiday); font-family: monospace; }
+.holiday-desc { flex: 1; color: var(--txt-m); font-size: 13px; }
+
+/* ── Add form ───────────────────────────────────────────────────────────────── */
+.add-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.add-form .form-group { margin-bottom: 0; flex: 1; min-width: 140px; }
+
+/* ── Toast ──────────────────────────────────────────────────────────────────── */
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 20px; font-size: 13px; box-shadow: 0 8px 24px #0006; z-index: 999; opacity: 0; transform: translateY(12px); transition: opacity .3s, transform .3s; max-width: 320px; }
+#toast.show { opacity: 1; transform: none; }
+#toast.toast-ok  { border-color: var(--success); }
+#toast.toast-err { border-color: var(--danger); }
+
+/* ── Individual report ──────────────────────────────────────────────────────── */
+.month-report-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.month-report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.month-report-title  { font-weight: 700; font-size: 15px; }
+.mini-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; font-size: 10px; }
+.mini-cal .mc-head { text-align: center; color: var(--txt-m); font-weight: 700; padding: 2px; }
+.mini-cal .mc-cell { text-align: center; padding: 3px 2px; border-radius: 4px; }
+.mc-empty  { }
+.mc-WFO    { background: #16a34a33; color: #86efac; }
+.mc-WFH    { background: #2563eb33; color: #93c5fd; }
+.mc-Leave  { background: #b4530933; color: #fbbf24; }
+.mc-DC-Holiday { background: #7c3aed33; color: #c4b5fd; }
+.mc-weekend { color: #4a5568; }
+
+/* ── Year adherence heatmap ─────────────────────────────────────────────────── */
+.adherence-grid { display: grid; grid-template-columns: 140px repeat(12, 1fr); gap: 4px; font-size: 12px; overflow-x: auto; }
+.adh-header     { text-align: center; font-weight: 700; color: var(--txt-m); padding: 4px 2px; font-size: 11px; }
+.adh-name       { font-weight: 600; padding: 6px 8px; display: flex; align-items: center; }
+.adh-cell       { border-radius: 6px; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 12px; }
+.adh-met        { background: #16a34a33; color: #86efac; }
+.adh-miss       { background: #ef444433; color: #fca5a5; }
+.adh-empty      { background: var(--surface2); color: var(--txt-m); }
+
+/* ── Change PIN modal ───────────────────────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: #000a; z-index: 100; display: flex; align-items: center; justify-content: center; }
+.modal-box     { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 360px; max-width: 95vw; }
+.modal-title   { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ──────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+<div class="login-box">
+  <div class="login-header">
+    <div class="brand">INFOSYS</div>
+    <div class="sub">Single Sign-On Portal</div>
+    <h2>Attendance Tracker</h2>
+    <p>Sign in with your Infosys credentials</p>
+  </div>
+  <div class="card">
+    <div class="sso-badge">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Protected by Infosys SSO — only @infosys.com accounts allowed
+    </div>
+
+    <!-- Step 1: Email -->
+    <div id="step-email">
+      <div class="form-group">
+        <label>Infosys Email</label>
+        <input type="email" id="inp-email" placeholder="yourname@infosys.com" autocomplete="username">
+        <div class="error-msg" id="err-email"></div>
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-primary" onclick="checkEmail()">Continue with Infosys ID →</button>
+      </div>
+    </div>
+
+    <!-- Step 2a: PIN Login -->
+    <div id="step-login" class="hidden">
+      <div class="form-group">
+        <label>Infosys Email</label>
+        <div id="disp-email-login" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
+      </div>
+      <div class="form-group">
+        <label>6-digit PIN</label>
+        <input type="password" id="inp-pin" maxlength="6" placeholder="••••••" autocomplete="current-password" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div class="error-msg" id="err-pin"></div>
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+        <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+      </div>
+    </div>
+
+    <!-- Step 2b: Set PIN (first login) -->
+    <div id="step-setpin" class="hidden">
+      <div class="form-group">
+        <label>Infosys Email</label>
+        <div id="disp-email-setpin" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
+      </div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:16px;">First login detected. Set a 6-digit PIN to secure your account.</p>
+      <div class="form-group">
+        <label>New PIN</label>
+        <input type="password" id="inp-new-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div class="form-group">
+        <label>Confirm PIN</label>
+        <input type="password" id="inp-confirm-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div class="error-msg" id="err-setpin"></div>
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-primary" onclick="doSetPin()">Set PIN & Sign In</button>
+        <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+      </div>
+    </div>
+
+    <!-- Step 2c: Register (new user, pick name) -->
+    <div id="step-register" class="hidden">
+      <div class="form-group">
+        <label>Infosys Email</label>
+        <div id="disp-email-reg" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
+      </div>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:12px;">Select your name from the team list to link your account:</p>
+      <div class="form-group">
+        <label>I am…</label>
+        <ul class="select-list" id="member-list"></ul>
+        <div class="error-msg" id="err-member"></div>
+      </div>
+      <div class="form-group">
+        <label>Set 6-digit PIN</label>
+        <input type="password" id="inp-reg-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div class="form-group">
+        <label>Confirm PIN</label>
+        <input type="password" id="inp-reg-confirm" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div class="error-msg" id="err-reg"></div>
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-primary" onclick="doRegister()">Register & Sign In</button>
+        <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+      </div>
+    </div>
+
+    <!-- Not found -->
+    <div id="step-notfound" class="hidden">
+      <p style="color:var(--warn);margin-bottom:16px;font-size:13px;">
+        Your email is not registered in the system. Please contact your admin:<br>
+        <strong>mohith_shenoyk01@infosys.com</strong>
+      </p>
+      <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ── APP SCREEN ─────────────────────────────────────────────────────────────── -->
+<div id="app-screen" class="hidden">
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-left">
+      <div class="app-title">Attendance <span>Tracker</span></div>
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)" title="Previous month">‹</button>
+        <span id="month-label"></span>
+        <button onclick="changeMonth(1)" title="Next month">›</button>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-badge">
+        <div class="avatar" id="user-avatar"></div>
+        <div>
+          <div class="user-name" id="user-name-disp"></div>
+          <div class="user-role" id="user-role-disp"></div>
+          <div id="viewer-badge" class="hidden" style="font-size:9px;background:#f59e0b22;color:#fcd34d;border:1px solid #f59e0b44;border-radius:4px;padding:1px 5px;margin-top:2px;letter-spacing:.5px;">VIEW ONLY</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openChangePinModal()">Change PIN</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav id="tab-nav">
+    <button class="tab-btn active" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendar</button>
+    <button class="tab-btn admin-only hidden" data-tab="team-report"    onclick="switchTab('team-report')">📊 Team Report</button>
+    <button class="tab-btn admin-only hidden" data-tab="year-adherence" onclick="switchTab('year-adherence')">📈 Year Overview</button>
+    <button class="tab-btn admin-only hidden" data-tab="individual"     onclick="switchTab('individual')">👤 Individual</button>
+    <button class="tab-btn admin-only hidden" data-tab="manage"         onclick="switchTab('manage')">⚙️ Manage Team</button>
+    <button class="tab-btn admin-only hidden" data-tab="holidays"       onclick="switchTab('holidays')">🏖️ DC Holidays</button>
+  </nav>
+
+  <!-- Tab Content -->
+  <main id="tab-content">
+    <!-- Calendar Tab -->
+    <div class="tab-pane active" id="tab-calendar">
+      <div class="section-header">
+        <div>
+          <div class="section-title" id="cal-title"></div>
+          <div style="font-size:12px;color:var(--txt-m);margin-top:2px;">WFO mandate: 10 days/month (WFO + Leave + DC Holiday counted)</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--wfo)"></div> WFO</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--wfh)"></div> WFH</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--leave)"></div> Leave</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--holiday)"></div> DC Holiday</div>
+        </div>
+      </div>
+      <div id="calendar-container"></div>
+    </div>
+
+    <!-- Team Report Tab -->
+    <div class="tab-pane" id="tab-team-report">
+      <div class="section-header">
+        <div class="section-title">Team Monthly Report</div>
+        <button class="btn btn-ghost btn-sm" onclick="exportTeamCSV()">⬇ Export CSV</button>
+      </div>
+      <div id="team-report-container"></div>
+    </div>
+
+    <!-- Year Adherence Tab -->
+    <div class="tab-pane" id="tab-year-adherence">
+      <div class="section-header">
+        <div class="section-title">2026 WFO Adherence Overview</div>
+        <div style="font-size:12px;color:var(--txt-m);">Green = mandate met (≥10), Red = mandate missed</div>
+      </div>
+      <div id="adherence-container"></div>
+    </div>
+
+    <!-- Individual Report Tab -->
+    <div class="tab-pane" id="tab-individual">
+      <div class="section-header">
+        <div class="section-title">Individual Report</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="sel-member" onchange="loadIndividualReport()" style="width:auto;min-width:180px;">
+            <option value="">Select team member…</option>
+          </select>
+        </div>
+      </div>
+      <div id="individual-container"></div>
+    </div>
+
+    <!-- Manage Tab -->
+    <div class="tab-pane" id="tab-manage">
+      <div class="section-header">
+        <div class="section-title">Manage Team</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddMemberForm()">+ Add Member</button>
+      </div>
+      <div id="add-member-form" class="hidden add-form">
+        <div class="form-group"><label>Full Name</label><input type="text" id="inp-new-name" placeholder="Full Name"></div>
+        <div class="form-group"><label>Email (optional)</label><input type="email" id="inp-new-email" placeholder="name@infosys.com"></div>
+        <button class="btn btn-success" onclick="addMember()">Add</button>
+        <button class="btn btn-ghost" onclick="closeAddMemberForm()">Cancel</button>
+      </div>
+      <div id="manage-container"></div>
+    </div>
+
+    <!-- Holidays Tab -->
+    <div class="tab-pane" id="tab-holidays">
+      <div class="section-header">
+        <div class="section-title">DC Holidays — 2026</div>
+      </div>
+      <div class="add-form">
+        <div class="form-group"><label>Date</label><input type="date" id="inp-holiday-date" min="2026-01-01" max="2026-12-31"></div>
+        <div class="form-group"><label>Description</label><input type="text" id="inp-holiday-desc" placeholder="e.g. Republic Day"></div>
+        <button class="btn btn-primary" onclick="addHoliday()">Mark DC Holiday</button>
+      </div>
+      <div id="holidays-container"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Change PIN Modal -->
+<div id="pin-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">Change PIN</div>
+    <div class="form-group">
+      <label>Current PIN</label>
+      <input type="password" id="inp-old-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="form-group">
+      <label>New PIN</label>
+      <input type="password" id="inp-chg-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="form-group">
+      <label>Confirm New PIN</label>
+      <input type="password" id="inp-chg-confirm" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+      <div class="error-msg" id="err-chgpin"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" onclick="doChangePin()">Update PIN</button>
+      <button class="btn btn-ghost" onclick="closePinModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const API     = '';
+let token     = localStorage.getItem('att_token');
+let currentUser = null;
+try { currentUser = JSON.parse(localStorage.getItem('att_user')); } catch {}
+
+let curYear   = 2026;
+let curMonth  = new Date().getMonth() + 1; // 1-12
+let teamData  = [];     // [{id, name, email, role, is_active}]
+let attData   = {};     // { "userId_date": status }
+let holidays  = new Set(); // set of date strings
+let selectedMemberId = null; // for register flow
+let sse       = null;
+
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const STATUSES = ['WFO','WFH','Leave','DC Holiday'];
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show toast-' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Server error');
+  return data;
+}
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+function setSession(data) {
+  token = data.token;
+  currentUser = data.user;
+  localStorage.setItem('att_token', token);
+  localStorage.setItem('att_user', JSON.stringify(data.user));
+}
+
+function logout() {
+  localStorage.removeItem('att_token');
+  localStorage.removeItem('att_user');
+  if (sse) { sse.close(); sse = null; }
+  location.reload();
+}
+
+// ── Login flow ────────────────────────────────────────────────────────────────
+function showStep(id) {
+  ['step-email','step-login','step-setpin','step-register','step-notfound']
+    .forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearErr(id) { const el = document.getElementById(id); el.textContent=''; el.classList.remove('show'); }
+
+function goBack() { showStep('step-email'); selectedMemberId = null; }
+
+async function checkEmail() {
+  clearErr('err-email');
+  const email = document.getElementById('inp-email').value.trim();
+  if (!email) { showErr('err-email','Enter your email'); return; }
+  try {
+    const r = await api('POST','/api/auth/check-email',{ email });
+    if (r.status === 'registered') {
+      document.getElementById('disp-email-login').textContent = email;
+      showStep('step-login');
+    } else if (r.status === 'needs-pin') {
+      document.getElementById('disp-email-setpin').textContent = email;
+      showStep('step-setpin');
+    } else if (r.status === 'unregistered') {
+      document.getElementById('disp-email-reg').textContent = email;
+      const ul = document.getElementById('member-list');
+      ul.innerHTML = '';
+      r.unregistered.forEach(m => {
+        const li = document.createElement('li');
+        li.textContent = m.name;
+        li.dataset.id = m.id;
+        li.onclick = () => {
+          ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
+          li.classList.add('selected');
+          selectedMemberId = m.id;
+        };
+        ul.appendChild(li);
+      });
+      if (!r.unregistered.length) {
+        ul.innerHTML = '<li style="color:var(--txt-m);cursor:default;">All members registered</li>';
+      }
+      showStep('step-register');
+    } else {
+      showStep('step-notfound');
+    }
+  } catch(e) { showErr('err-email', e.message); }
+}
+
+async function doLogin() {
+  clearErr('err-pin');
+  const email = document.getElementById('inp-email').value.trim();
+  const pin   = document.getElementById('inp-pin').value;
+  try {
+    const r = await api('POST','/api/auth/login',{ email, pin });
+    setSession(r);
+    startApp();
+  } catch(e) { showErr('err-pin', e.message); }
+}
+
+async function doSetPin() {
+  clearErr('err-setpin');
+  const email = document.getElementById('inp-email').value.trim();
+  const pin   = document.getElementById('inp-new-pin').value;
+  const conf  = document.getElementById('inp-confirm-pin').value;
+  try {
+    const r = await api('POST','/api/auth/set-pin',{ email, pin, confirm_pin: conf });
+    setSession(r);
+    startApp();
+  } catch(e) { showErr('err-setpin', e.message); }
+}
+
+async function doRegister() {
+  clearErr('err-reg');
+  if (!selectedMemberId) { clearErr('err-member'); showErr('err-member','Select your name'); return; }
+  const email = document.getElementById('inp-email').value.trim();
+  const pin   = document.getElementById('inp-reg-pin').value;
+  const conf  = document.getElementById('inp-reg-confirm').value;
+  try {
+    const r = await api('POST','/api/auth/register',{ email, user_id: selectedMemberId, pin, confirm_pin: conf });
+    setSession(r);
+    startApp();
+  } catch(e) { showErr('err-reg', e.message); }
+}
+
+// ── App bootstrap ─────────────────────────────────────────────────────────────
+async function startApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+
+  // Header
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name-disp').textContent = currentUser.name;
+  document.getElementById('user-role-disp').textContent = currentUser.role === 'admin' ? 'Admin' : 'Member';
+
+  if (currentUser.role === 'admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+  }
+  if (currentUser.role === 'viewer') {
+    document.getElementById('viewer-badge').classList.remove('hidden');
+    document.getElementById('user-role-disp').textContent = 'Viewer';
+  }
+
+  await Promise.all([loadTeam(), loadHolidays()]);
+  await loadCalendar();
+  connectSSE();
+
+  // Auto-load year adherence if admin
+  if (currentUser.role === 'admin') {
+    loadYearAdherence();
+    populateMemberSelect();
+  }
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function connectSSE() {
+  if (sse) sse.close();
+  sse = new EventSource(API + '/api/events', { headers: { 'Authorization': 'Bearer '+token } });
+  // Note: EventSource doesn't support custom headers directly — use query param
+  if (sse.readyState === EventSource.CLOSED) {
+    // Fallback: poll every 5s
+    setInterval(loadCalendar, 5000);
+    return;
+  }
+  sse.onmessage = async (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'attendance_update') handleAttendanceUpdate(data.record);
+    else if (data.type === 'attendance_delete') handleAttendanceDelete(data.user_id, data.date);
+    else if (data.type === 'holiday_added' || data.type === 'holiday_removed') {
+      await loadHolidays();
+      await loadCalendar();
+    }
+  };
+  sse.onerror = () => {
+    sse.close();
+    setTimeout(connectSSE, 5000);
+  };
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadTeam() {
+  teamData = await api('GET', '/api/team');
+}
+
+async function loadHolidays() {
+  const h = await api('GET','/api/holidays');
+  holidays = new Set(h.map(x => x.date));
+}
+
+async function loadCalendar() {
+  const rows = await api('GET', `/api/attendance/${curYear}/${curMonth}`);
+  attData = {};
+  rows.forEach(r => { attData[`${r.user_id}_${r.date}`] = r.status; });
+  renderCalendar();
+}
+
+// ── Calendar rendering ────────────────────────────────────────────────────────
+function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+function isWeekend(y, m, d) { const day = new Date(y, m-1, d).getDay(); return day === 0 || day === 6; }
+function fmtDate(y, m, d)   { return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function changeMonth(delta) {
+  curMonth += delta;
+  if (curMonth > 12) { curMonth = 1; curYear++; }
+  if (curMonth < 1)  { curMonth = 12; curYear--; }
+  loadCalendar();
+}
+
+function renderCalendar() {
+  const n    = daysInMonth(curYear, curMonth);
+  const name = MONTHS[curMonth - 1];
+  document.getElementById('month-label').textContent = `${name} ${curYear}`;
+  document.getElementById('cal-title').textContent   = `${name} ${curYear}`;
+
+  // Viewers and admin see the full team; members see only their own row
+  const members = (currentUser.role === 'admin' || currentUser.role === 'viewer')
+    ? teamData
+    : teamData.filter(m => m.id === currentUser.id);
+
+  if (!members.length) {
+    document.getElementById('calendar-container').innerHTML =
+      '<p style="color:var(--txt-m);padding:40px 0;text-align:center;">No team members found. Ask admin to configure the team.</p>';
+    return;
+  }
+
+  let html = '<div class="calendar-wrap"><table class="cal-table"><thead><tr>';
+  html += `<th class="name-col">Member</th>`;
+  for (let d = 1; d <= n; d++) {
+    const dow = new Date(curYear, curMonth-1, d).getDay();
+    const wknd = dow === 0 || dow === 6;
+    html += `<th class="day-header${wknd ? ' weekend-col' : ''}">
+      <div class="day-num">${d}</div>
+      <div class="day-name">${DAYS[dow]}</div>
+    </th>`;
+  }
+  html += '<th style="min-width:80px;text-align:center;">Effective<br>WFO</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const member of members) {
+    html += `<tr>`;
+    html += `<td class="name-cell">${member.name}${!member.is_active ? ' <small style="color:var(--danger)">(inactive)</small>' : ''}</td>`;
+    let effWfo = 0;
+    for (let d = 1; d <= n; d++) {
+      const date   = fmtDate(curYear, curMonth, d);
+      const status = attData[`${member.id}_${date}`] || '';
+      const wknd   = isWeekend(curYear, curMonth, d);
+      const canEdit = currentUser.role !== 'viewer' && (currentUser.role === 'admin' || member.id === currentUser.id);
+
+      if (['WFO','Leave','DC Holiday'].includes(status)) effWfo++;
+
+      const cls    = status ? `s-${status.replace(' ','-')}` : 's-empty';
+      if (wknd) {
+        html += `<td class="weekend-col"><div class="cell-wrap"><div class="weekend-cell">—</div></div></td>`;
+      } else {
+        const opts = ['', ...STATUSES].map(s =>
+          `<option value="${s}" ${s===status?'selected':''}>${s||'--'}</option>`
+        ).join('');
+        html += `<td>
+          <div class="cell-wrap">
+            <select class="status-select ${cls}"
+              data-uid="${member.id}" data-date="${date}"
+              onchange="onStatusChange(this)"
+              ${!canEdit ? 'disabled' : ''}>
+              ${opts}
+            </select>
+          </div>
+        </td>`;
+      }
+    }
+    // WFO count badge
+    const met = effWfo >= 10;
+    html += `<td><div style="text-align:center;"><span class="pill ${met?'pill-ok':'pill-warn'}">${effWfo}/10</span></div></td>`;
+    html += '</tr>';
+  }
+
+  // Summary row (admin only — not shown to viewers)
+  if (currentUser.role === 'admin' && members.length > 1) {
+    html += '<tr class="summary-row"><td class="name-cell" style="color:var(--txt-m);font-size:11px;">EFFECTIVE WFO</td>';
+    for (let d = 1; d <= n; d++) {
+      const date = fmtDate(curYear, curMonth, d);
+      const wknd = isWeekend(curYear, curMonth, d);
+      if (wknd) { html += `<td class="weekend-col">—</td>`; continue; }
+      const cnt = members.filter(m => ['WFO','Leave','DC Holiday'].includes(attData[`${m.id}_${date}`])).length;
+      html += `<td><span style="font-size:11px;color:${cnt===members.length?'var(--success)':cnt>0?'var(--warn)':'var(--txt-m)'}">${cnt}/${members.length}</span></td>`;
+    }
+    html += '<td></td></tr>';
+  }
+
+  html += '</tbody></table></div>';
+  document.getElementById('calendar-container').innerHTML = html;
+}
+
+// ── Attendance actions ─────────────────────────────────────────────────────────
+async function onStatusChange(sel) {
+  const uid  = Number(sel.dataset.uid);
+  const date = sel.dataset.date;
+  const status = sel.value;
+
+  // Update color immediately
+  sel.className = 'status-select ' + (status ? `s-${status.replace(' ','-')}` : 's-empty');
+
+  if (!status) {
+    // Delete
+    try {
+      await api('DELETE', `/api/attendance/${uid}/${date}`);
+      delete attData[`${uid}_${date}`];
+      refreshSummaryRow();
+    } catch(e) { toast(e.message, 'err'); }
+    return;
+  }
+
+  try {
+    await api('POST', '/api/attendance', { user_id: uid, date, status });
+    attData[`${uid}_${date}`] = status;
+    refreshSummaryRow();
+    refreshWfoCount(uid);
+  } catch(e) {
+    toast(e.message, 'err');
+    // Revert
+    sel.value = attData[`${uid}_${date}`] || '';
+    sel.className = 'status-select ' + (sel.value ? `s-${sel.value.replace(' ','-')}` : 's-empty');
+  }
+}
+
+function handleAttendanceUpdate(record) {
+  const key = `${record.user_id}_${record.date}`;
+  // Only update if it's for the current month view
+  const [y, m] = record.date.split('-');
+  if (parseInt(y) !== curYear || parseInt(m) !== curMonth) return;
+
+  attData[key] = record.status;
+  const sel = document.querySelector(`select[data-uid="${record.user_id}"][data-date="${record.date}"]`);
+  if (sel) {
+    sel.value = record.status;
+    sel.className = 'status-select s-' + record.status.replace(' ','-');
+  }
+  refreshSummaryRow();
+  refreshWfoCount(record.user_id);
+  toast(`${record.name}: ${record.date} → ${record.status}`);
+}
+
+function handleAttendanceDelete(userId, date) {
+  const [y, m] = date.split('-');
+  if (parseInt(y) !== curYear || parseInt(m) !== curMonth) return;
+  delete attData[`${userId}_${date}`];
+  const sel = document.querySelector(`select[data-uid="${userId}"][data-date="${date}"]`);
+  if (sel) { sel.value = ''; sel.className = 'status-select s-empty'; }
+  refreshSummaryRow();
+  refreshWfoCount(userId);
+}
+
+function refreshWfoCount(userId) {
+  const n = daysInMonth(curYear, curMonth);
+  let eff = 0;
+  for (let d = 1; d <= n; d++) {
+    const date = fmtDate(curYear, curMonth, d);
+    if (!isWeekend(curYear, curMonth, d) && ['WFO','Leave','DC Holiday'].includes(attData[`${userId}_${date}`])) eff++;
+  }
+  // Find the badge in that member's row
+  const row = document.querySelector(`select[data-uid="${userId}"]`)?.closest('tr');
+  if (row) {
+    const badge = row.querySelector('.pill');
+    if (badge) {
+      badge.textContent = `${eff}/10`;
+      badge.className = `pill ${eff >= 10 ? 'pill-ok' : 'pill-warn'}`;
+    }
+  }
+}
+
+function refreshSummaryRow() {
+  if (currentUser.role !== 'admin') return;
+  const n       = daysInMonth(curYear, curMonth);
+  const members = teamData;
+  const summRow = document.querySelector('.summary-row');
+  if (!summRow) return;
+  const cells = summRow.querySelectorAll('td:not(.name-cell)');
+  let ci = 0;
+  for (let d = 1; d <= n; d++) {
+    if (isWeekend(curYear, curMonth, d)) { ci++; continue; }
+    const date = fmtDate(curYear, curMonth, d);
+    const cnt  = members.filter(m => ['WFO','Leave','DC Holiday'].includes(attData[`${m.id}_${date}`])).length;
+    if (cells[ci]) cells[ci].innerHTML = `<span style="font-size:11px;color:${cnt===members.length?'var(--success)':cnt>0?'var(--warn)':'var(--txt-m)'}">${cnt}/${members.length}</span>`;
+    ci++;
+  }
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-'+tab));
+  if (tab === 'team-report')    loadTeamReport();
+  if (tab === 'year-adherence') loadYearAdherence();
+  if (tab === 'manage')         loadManageUsers();
+  if (tab === 'holidays')       loadHolidaysList();
+}
+
+// ── Team Report ───────────────────────────────────────────────────────────────
+async function loadTeamReport() {
+  const data = await api('GET', `/api/reports/month/${curYear}/${curMonth}`);
+  const members = Object.values(data.members);
+  const n    = daysInMonth(curYear, curMonth);
+
+  let html = `<div class="stat-grid">`;
+  const met = members.filter(m => m.effectiveWfo >= 10).length;
+  html += `<div class="stat-card"><div class="stat-val" style="color:var(--success)">${met}</div><div class="stat-lbl">Mandate Met</div></div>`;
+  html += `<div class="stat-card"><div class="stat-val" style="color:var(--danger)">${members.length - met}</div><div class="stat-lbl">Mandate Missed</div></div>`;
+  html += `<div class="stat-card"><div class="stat-val">${members.length}</div><div class="stat-lbl">Total Members</div></div>`;
+  const pct = members.length ? Math.round(met/members.length*100) : 0;
+  html += `<div class="stat-card"><div class="stat-val">${pct}%</div><div class="stat-lbl">Adherence Rate</div></div>`;
+  html += `</div>`;
+
+  html += `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);">
+    <table class="report-table">
+    <thead><tr>
+      <th>Member</th>`;
+  for (let d = 1; d <= n; d++) {
+    const wknd = isWeekend(curYear, curMonth, d);
+    html += `<th style="text-align:center;min-width:28px;padding:6px 2px;${wknd?'opacity:.4':''}">${d}</th>`;
+  }
+  html += `<th style="text-align:center;">Eff. WFO</th><th>Status</th></tr></thead><tbody>`;
+
+  for (const [uid, m] of Object.entries(data.members)) {
+    html += `<tr><td style="font-weight:600;">${m.name}</td>`;
+    for (let d = 1; d <= n; d++) {
+      const date   = fmtDate(curYear, curMonth, d);
+      const status = m.entries[date] || '';
+      const wknd   = isWeekend(curYear, curMonth, d);
+      if (wknd) { html += `<td style="background:#151d2b;"></td>`; continue; }
+      const colors = { WFO: '#16a34a', WFH: '#2563eb', Leave: '#b45309', 'DC Holiday': '#7c3aed' };
+      const abbr   = { WFO:'W', WFH:'H', Leave:'L', 'DC Holiday':'DC', '': '' };
+      html += `<td style="text-align:center;background:${colors[status]||''}20;color:${colors[status]||'var(--txt-m)'};font-weight:700;font-size:11px;">${abbr[status]||''}</td>`;
+    }
+    const metFlag = m.effectiveWfo >= 10;
+    html += `<td class="${metFlag?'met-cell':'miss-cell'}" style="text-align:center;">${m.effectiveWfo}</td>`;
+    html += `<td><span class="pill ${metFlag?'pill-ok':'pill-red'}">${metFlag?'Met':'Missed'}</span></td>`;
+    html += `</tr>`;
+  }
+  html += `</tbody></table></div>`;
+  document.getElementById('team-report-container').innerHTML = html;
+}
+
+// ── Year Adherence ────────────────────────────────────────────────────────────
+async function loadYearAdherence() {
+  const data    = await api('GET', `/api/reports/year/2026`);
+  const mShort  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let html      = '<div class="adherence-grid">';
+  html += '<div class="adh-header" style="text-align:left;padding-left:8px;">Member</div>';
+  mShort.forEach(m => html += `<div class="adh-header">${m}</div>`);
+
+  for (const [uid, member] of Object.entries(data.members)) {
+    html += `<div class="adh-name">${member.name}</div>`;
+    for (let mo = 1; mo <= 12; mo++) {
+      const d = member.months[mo];
+      if (!d || d.effectiveWfo === 0) {
+        html += `<div class="adh-cell adh-empty">—</div>`;
+      } else {
+        html += `<div class="adh-cell ${d.met ? 'adh-met' : 'adh-miss'}">${d.effectiveWfo}</div>`;
+      }
+    }
+  }
+  html += '</div>';
+
+  // Team summary row
+  html += '<div style="margin-top:20px;"><div class="section-title" style="font-size:14px;margin-bottom:12px;">Monthly Adherence Rate</div>';
+  html += '<div class="adherence-grid">';
+  html += '<div class="adh-name" style="color:var(--txt-m);font-size:11px;">% Met</div>';
+  const members = Object.values(data.members);
+  for (let mo = 1; mo <= 12; mo++) {
+    const metCnt = members.filter(m => m.months[mo]?.met).length;
+    const pct    = members.length ? Math.round(metCnt/members.length*100) : 0;
+    const cls    = pct >= 80 ? 'adh-met' : pct >= 50 ? '' : 'adh-miss';
+    html += `<div class="adh-cell ${cls}" style="background:${pct>=80?'#16a34a33':pct>=50?'#f59e0b22':'#ef444422'};color:${pct>=80?'#86efac':pct>=50?'#fcd34d':'#fca5a5'}">${pct}%</div>`;
+  }
+  html += '</div></div>';
+  document.getElementById('adherence-container').innerHTML = html;
+}
+
+// ── Individual Report ─────────────────────────────────────────────────────────
+function populateMemberSelect() {
+  const sel = document.getElementById('sel-member');
+  sel.innerHTML = '<option value="">Select team member…</option>';
+  teamData.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadIndividualReport() {
+  const uid = document.getElementById('sel-member').value;
+  if (!uid) { document.getElementById('individual-container').innerHTML = ''; return; }
+  const data = await api('GET', `/api/reports/individual/${uid}/2026`);
+  const mNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  let html = `<div style="margin-bottom:16px;font-size:15px;font-weight:700;">📋 ${data.user.name} — 2026</div>`;
+  html += `<div class="stat-grid">`;
+  let totalMet = 0;
+  for (let mo = 1; mo <= 12; mo++) { if (data.months[mo].met) totalMet++; }
+  html += `<div class="stat-card"><div class="stat-val" style="color:var(--success)">${totalMet}</div><div class="stat-lbl">Months Mandate Met</div></div>`;
+  html += `<div class="stat-card"><div class="stat-val" style="color:var(--danger)">${12-totalMet}</div><div class="stat-lbl">Months Missed</div></div>`;
+  const totalWfo = Object.values(data.months).reduce((a,b)=>a+b.wfo,0);
+  const totalLeave = Object.values(data.months).reduce((a,b)=>a+b.leave,0);
+  const totalHoliday = Object.values(data.months).reduce((a,b)=>a+b.holiday,0);
+  html += `<div class="stat-card"><div class="stat-val">${totalWfo}</div><div class="stat-lbl">WFO Days</div></div>`;
+  html += `<div class="stat-card"><div class="stat-val">${totalLeave+totalHoliday}</div><div class="stat-lbl">Leave+Holidays</div></div>`;
+  html += `</div>`;
+
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
+  for (let mo = 1; mo <= 12; mo++) {
+    const md  = data.months[mo];
+    const n   = daysInMonth(2026, mo);
+    const dow0 = new Date(2026, mo-1, 1).getDay();
+    const met = md.met;
+    html += `<div class="month-report-card">
+      <div class="month-report-header">
+        <div class="month-report-title">${mNames[mo-1]}</div>
+        <span class="pill ${met?'pill-ok':'pill-warn'}">${md.effectiveWfo}/10 ${met?'✓':'!'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--txt-m);margin-bottom:8px;">WFO ${md.wfo} · WFH ${md.wfh} · Leave ${md.leave} · DC Holiday ${md.holiday}</div>
+      <div class="mini-cal">`;
+    ['S','M','T','W','T','F','S'].forEach(d => html += `<div class="mc-head">${d}</div>`);
+    for (let i = 0; i < dow0; i++) html += '<div class="mc-cell mc-empty"></div>';
+    for (let d = 1; d <= n; d++) {
+      const date = fmtDate(2026, mo, d);
+      const st   = md.entries[date] || '';
+      const dow  = new Date(2026, mo-1, d).getDay();
+      const wknd = dow === 0 || dow === 6;
+      const cls  = wknd ? 'mc-weekend' : st ? `mc-${st.replace(' ','-')}` : '';
+      html += `<div class="mc-cell ${cls}" title="${st||''}">${d}</div>`;
+    }
+    html += `</div></div>`;
+  }
+  html += '</div>';
+  document.getElementById('individual-container').innerHTML = html;
+}
+
+// ── Manage Users ──────────────────────────────────────────────────────────────
+async function loadManageUsers() {
+  const users = await api('GET', '/api/admin/users');
+  let html = '';
+  for (const u of users) {
+    html += `<div class="user-row">
+      <div class="avatar" style="width:36px;height:36px;font-size:13px;">${u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div class="user-info">
+        <div class="uname">${u.name} ${u.role==='admin'?'<span class="pill pill-ok">Admin</span>':''}</div>
+        <div class="uemail">${u.email || '<em>No email (not registered)</em>'}</div>
+      </div>
+      <div style="flex:1;text-align:center;">
+        <span class="pill ${u.is_active?'pill-ok':'pill-red'}">${u.is_active?'Active':'Inactive'}</span>
+      </div>
+      <div class="user-actions">
+        ${u.role !== 'admin' ? `
+          <button class="btn btn-ghost btn-sm" onclick="resetPin(${u.id})">Reset PIN</button>
+          <button class="btn ${u.is_active?'btn-danger':'btn-success'} btn-sm" onclick="toggleUser(${u.id},${u.is_active})">
+            ${u.is_active ? 'Deactivate' : 'Activate'}
+          </button>` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('manage-container').innerHTML = html || '<p style="color:var(--txt-m)">No members found.</p>';
+}
+
+function openAddMemberForm() { document.getElementById('add-member-form').classList.remove('hidden'); }
+function closeAddMemberForm() { document.getElementById('add-member-form').classList.add('hidden'); }
+
+async function addMember() {
+  const name  = document.getElementById('inp-new-name').value.trim();
+  const email = document.getElementById('inp-new-email').value.trim();
+  if (!name) { toast('Name is required', 'err'); return; }
+  try {
+    await api('POST', '/api/admin/users', { name, email: email || undefined });
+    toast('Member added');
+    await loadTeam();
+    loadManageUsers();
+    closeAddMemberForm();
+    document.getElementById('inp-new-name').value = '';
+    document.getElementById('inp-new-email').value = '';
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function resetPin(uid) {
+  if (!confirm('Reset this member\'s PIN? They will need to set a new PIN on next login.')) return;
+  try { await api('POST', `/api/admin/users/${uid}/reset-pin`); toast('PIN reset successfully'); } catch(e) { toast(e.message,'err'); }
+}
+
+async function toggleUser(uid, active) {
+  try {
+    await api('PUT', `/api/admin/users/${uid}`, { is_active: !active });
+    toast(active ? 'Member deactivated' : 'Member activated');
+    loadManageUsers();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// ── Holidays ──────────────────────────────────────────────────────────────────
+async function loadHolidaysList() {
+  const list = await api('GET','/api/holidays');
+  if (!list.length) {
+    document.getElementById('holidays-container').innerHTML = '<p style="color:var(--txt-m)">No DC Holidays configured for 2026.</p>';
+    return;
+  }
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let html = '';
+  for (const h of list) {
+    const d    = new Date(h.date + 'T00:00:00');
+    const nice = `${d.getDate()} ${months[d.getMonth()]} 2026`;
+    html += `<div class="holiday-row">
+      <div class="legend-dot" style="background:var(--holiday)"></div>
+      <div class="holiday-date">${h.date}</div>
+      <div style="color:var(--txt-m);font-size:12px;">${nice}</div>
+      <div class="holiday-desc">${h.description || '—'}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeHoliday('${h.date}')">Remove</button>
+    </div>`;
+  }
+  document.getElementById('holidays-container').innerHTML = html;
+}
+
+async function addHoliday() {
+  const date = document.getElementById('inp-holiday-date').value;
+  const desc = document.getElementById('inp-holiday-desc').value.trim();
+  if (!date) { toast('Pick a date','err'); return; }
+  try {
+    await api('POST','/api/holidays',{ date, description: desc });
+    toast(`${date} marked as DC Holiday for all members`);
+    await loadHolidays();
+    loadHolidaysList();
+    document.getElementById('inp-holiday-date').value = '';
+    document.getElementById('inp-holiday-desc').value = '';
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function removeHoliday(date) {
+  if (!confirm(`Remove DC Holiday on ${date}?`)) return;
+  try {
+    await api('DELETE',`/api/holidays/${date}`);
+    toast('Holiday removed');
+    await loadHolidays();
+    loadHolidaysList();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// ── Change PIN ────────────────────────────────────────────────────────────────
+function openChangePinModal() { document.getElementById('pin-modal').classList.remove('hidden'); }
+function closePinModal()       { document.getElementById('pin-modal').classList.add('hidden'); }
+
+async function doChangePin() {
+  clearErr('err-chgpin');
+  const old = document.getElementById('inp-old-pin').value;
+  const nw  = document.getElementById('inp-chg-pin').value;
+  const cf  = document.getElementById('inp-chg-confirm').value;
+  try {
+    await api('POST','/api/auth/change-pin',{ old_pin: old, new_pin: nw, confirm_pin: cf });
+    toast('PIN changed successfully');
+    closePinModal();
+    document.getElementById('inp-old-pin').value = '';
+    document.getElementById('inp-chg-pin').value = '';
+    document.getElementById('inp-chg-confirm').value = '';
+  } catch(e) { showErr('err-chgpin', e.message); }
+}
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+async function exportTeamCSV() {
+  const data    = await api('GET', `/api/reports/month/${curYear}/${curMonth}`);
+  const n       = daysInMonth(curYear, curMonth);
+  const headers = ['Member', ...Array.from({length:n},(_,i)=>String(i+1)), 'Effective WFO', 'Mandate Met'];
+  const rows    = [headers];
+  for (const [, m] of Object.entries(data.members)) {
+    const row = [m.name];
+    for (let d = 1; d <= n; d++) {
+      const date = fmtDate(curYear, curMonth, d);
+      row.push(isWeekend(curYear, curMonth, d) ? 'Weekend' : (m.entries[date] || ''));
+    }
+    row.push(m.effectiveWfo, m.effectiveWfo >= 10 ? 'Yes' : 'No');
+    rows.push(row);
+  }
+  const csv   = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob  = new Blob([csv], { type: 'text/csv' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url; a.download = `attendance_${curYear}_${String(curMonth).padStart(2,'0')}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── SSE via token as query param (browser EventSource doesn't support headers) ─
+function connectSSE() {
+  if (sse) sse.close();
+  sse = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
+  sse.onmessage = async (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'attendance_update') handleAttendanceUpdate(data.record);
+    else if (data.type === 'attendance_delete') handleAttendanceDelete(data.user_id, data.date);
+    else if (data.type === 'holiday_added' || data.type === 'holiday_removed') {
+      await loadHolidays(); await loadCalendar();
+    }
+  };
+  sse.onerror = () => { sse.close(); setTimeout(connectSSE, 5000); };
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Keyboard shortcuts
+  document.getElementById('inp-email').addEventListener('keydown', e => { if (e.key==='Enter') checkEmail(); });
+  document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+  document.getElementById('inp-confirm-pin').addEventListener('keydown', e => { if (e.key==='Enter') doSetPin(); });
+  document.getElementById('inp-reg-confirm').addEventListener('keydown', e => { if (e.key==='Enter') doRegister(); });
+
+  if (token && currentUser) {
+    // Resume session
+    startApp().catch(() => { logout(); });
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+});
+</script>
+</body>
+</html>
