@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: att-tracker-infosys
+    runtime: docker
+    plan: starter
+    healthCheckPath: /
+    disk:
+      name: attendance-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DB_DIR
+        value: /data
+      - key: NODE_ENV
+        value: production
