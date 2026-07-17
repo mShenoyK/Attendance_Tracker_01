@@ -1,0 +1,6 @@
+*.db
+*.db-shm
+*.db-wal
+.jwt_secret
+logs/
+node_modules/
