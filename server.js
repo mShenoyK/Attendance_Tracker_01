@@ -16,16 +16,18 @@ try {
 
 // ── Config ───────────────────────────────────────────────────────────────────
 const PORT        = process.env.PORT || 3456;
-// On Fly.io DB_DIR is /data (persistent volume); locally it falls back to the project dir
+// DB_DIR: /data on Render (persistent disk) or fallback to project dir locally
 const DB_DIR      = process.env.DB_DIR || __dirname;
+if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true }); // create /data if disk not yet mounted
 const DB_PATH     = path.join(DB_DIR, 'attendance.db');
 const ADMIN_EMAIL = 'mohith_shenoyk01@infosys.com';
 
-// Stable secret stored on the same persistent volume so tokens survive redeploys
+// JWT_SECRET: prefer env var (set in Render dashboard); fall back to file for local dev
 const SECRET_FILE = path.join(DB_DIR, '.jwt_secret');
-const JWT_SECRET  = fs.existsSync(SECRET_FILE)
-  ? fs.readFileSync(SECRET_FILE, 'utf8').trim()
-  : (() => { const s = crypto.randomBytes(32).toString('hex'); fs.writeFileSync(SECRET_FILE, s); return s; })();
+const JWT_SECRET  = process.env.JWT_SECRET
+  || (fs.existsSync(SECRET_FILE)
+    ? fs.readFileSync(SECRET_FILE, 'utf8').trim()
+    : (() => { const s = crypto.randomBytes(32).toString('hex'); fs.writeFileSync(SECRET_FILE, s); return s; })());
 
 // ── JWT helpers ───────────────────────────────────────────────────────────────
 function signToken(payload, hours = 8) {
