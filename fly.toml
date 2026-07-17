@@ -1,0 +1,40 @@
+# Fly.io configuration for the Attendance Tracker
+app = "att-tracker-infosys"
+primary_region = "sin"          # Singapore — closest Fly region to India
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT    = "3456"
+  DB_DIR  = "/data"
+
+# Persistent volume — keeps attendance.db across deploys and restarts
+[mounts]
+  source      = "attendance_data"
+  destination = "/data"
+
+[[services]]
+  internal_port = 3456
+  protocol      = "tcp"
+  auto_stop_machines  = false   # never auto-stop — always on
+  auto_start_machines = true
+
+  [[services.ports]]
+    handlers = ["http"]
+    port     = 80
+    force_https = true          # redirect HTTP → HTTPS
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port     = 443
+
+  [services.concurrency]
+    type       = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[services.http_checks]]
+    interval = 30000
+    timeout  = 5000
+    path     = "/"
