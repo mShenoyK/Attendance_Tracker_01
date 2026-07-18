@@ -8,9 +8,12 @@
     "dev:local": "NODE_PATH=/Users/mohith_shenoyk01/cn-shipment-details/node_modules node --no-warnings --watch server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.13.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.10.0"
   },
   "engines": {
     "node": ">=18"
