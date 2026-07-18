@@ -23,12 +23,10 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
 })();
 
 // ── JWT helpers ───────────────────────────────────────────────────────────────
-function signToken(payload, hours = 168) { // 7 days
-  const exp  = Math.floor(Date.now() / 1000) + hours * 3600;
-  const data = { ...payload, exp };
-  const h    = Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url');
-  const b    = Buffer.from(JSON.stringify(data)).toString('base64url');
-  const s    = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
+function signToken(payload) {
+  const h = Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url');
+  const b = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const s = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
   return `${h}.${b}.${s}`;
 }
 
