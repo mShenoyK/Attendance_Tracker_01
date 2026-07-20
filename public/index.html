@@ -51,23 +51,20 @@ input[type="password"] { letter-spacing: 4px; }
 #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .login-box { width: 100%; max-width: 420px; }
 .login-header { text-align: center; margin-bottom: 32px; }
-.login-header .brand { font-size: 22px; font-weight: 800; color: #0057a8; letter-spacing: 1px; }
-.login-header .sub   { font-size: 12px; color: var(--txt-m); margin-top: 4px; }
-.login-header h2     { margin-top: 18px; font-size: 20px; font-weight: 700; }
+.login-header h2     { font-size: 20px; font-weight: 700; }
 .login-header p      { color: var(--txt-m); margin-top: 4px; font-size: 13px; }
 .login-box .card     { padding: 28px; }
 .form-group          { margin-bottom: 16px; }
 .form-group label    { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--txt-m); text-transform: uppercase; letter-spacing: .5px; }
 .form-group .hint    { font-size: 11px; color: var(--txt-m); margin-top: 4px; }
 .login-actions       { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-.sso-badge           { display: flex; align-items: center; gap: 8px; background: #0057a812; border: 1px solid #0057a840; border-radius: var(--radius); padding: 10px 14px; margin-bottom: 20px; font-size: 12px; color: #93c5fd; }
-.sso-badge svg       { flex-shrink: 0; }
 .error-msg           { color: var(--danger); font-size: 12px; margin-top: 6px; display: none; }
 .error-msg.show      { display: block; }
-.select-list { list-style: none; margin-top: 6px; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-.select-list li { padding: 10px 14px; cursor: pointer; transition: background .15s; font-size: 13px; }
+.select-list { list-style: none; margin-top: 6px; max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.select-list li { padding: 10px 14px; cursor: pointer; transition: background .15s; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .select-list li:hover { background: var(--surface2); }
 .select-list li.selected { background: #2563eb33; color: #93c5fd; }
+.pill-blue    { background: #2563eb33; color: #93c5fd; }
 .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
 /* ── App Shell ─────────────────────────────────────────────────────────────── */
@@ -208,27 +205,27 @@ input[type="password"] { letter-spacing: 4px; }
 <div class="login-box">
   <div class="login-header">
     <h2>Mohith's Team Attendance Tracker</h2>
-    <p>Sign in with your Infosys credentials</p>
+    <p>Select your name to continue</p>
   </div>
   <div class="card">
 
-    <!-- Step 1: Email -->
-    <div id="step-email">
+    <!-- Step 1: Select user -->
+    <div id="step-select">
       <div class="form-group">
-        <label>Infosys Email</label>
-        <input type="email" id="inp-email" placeholder="yourname@infosys.com" autocomplete="username">
-        <div class="error-msg" id="err-email"></div>
+        <label>Who are you?</label>
+        <ul class="select-list" id="user-list"></ul>
+        <div class="error-msg" id="err-select"></div>
       </div>
       <div class="login-actions">
-        <button class="btn btn-primary" onclick="checkEmail()">Continue with Infosys ID →</button>
+        <button class="btn btn-primary" onclick="continueFromSelect()">Continue →</button>
       </div>
     </div>
 
-    <!-- Step 2a: PIN Login -->
+    <!-- Step 2a: Enter PIN (returning user) -->
     <div id="step-login" class="hidden">
       <div class="form-group">
-        <label>Infosys Email</label>
-        <div id="disp-email-login" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
+        <label>Signed in as</label>
+        <div id="disp-selected-user" style="padding:8px 0;font-size:14px;font-weight:600;"></div>
       </div>
       <div class="form-group">
         <label>6-digit PIN</label>
@@ -241,13 +238,13 @@ input[type="password"] { letter-spacing: 4px; }
       </div>
     </div>
 
-    <!-- Step 2b: Set PIN (first login) -->
+    <!-- Step 2b: Set PIN (first access) -->
     <div id="step-setpin" class="hidden">
       <div class="form-group">
-        <label>Infosys Email</label>
-        <div id="disp-email-setpin" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
+        <label>Setting PIN for</label>
+        <div id="disp-selected-user-pin" style="padding:8px 0;font-size:14px;font-weight:600;"></div>
       </div>
-      <p style="font-size:13px;color:var(--txt-m);margin-bottom:16px;">First login detected. Set a 6-digit PIN to secure your account.</p>
+      <p style="font-size:13px;color:var(--txt-m);margin-bottom:16px;">First access — set a 6-digit PIN to secure your account.</p>
       <div class="form-group">
         <label>New PIN</label>
         <input type="password" id="inp-new-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
@@ -261,42 +258,6 @@ input[type="password"] { letter-spacing: 4px; }
         <button class="btn btn-primary" onclick="doSetPin()">Set PIN & Sign In</button>
         <button class="btn btn-ghost" onclick="goBack()">← Back</button>
       </div>
-    </div>
-
-    <!-- Step 2c: Register (new user, pick name) -->
-    <div id="step-register" class="hidden">
-      <div class="form-group">
-        <label>Infosys Email</label>
-        <div id="disp-email-reg" style="color:var(--txt-m);font-size:13px;padding:8px 0;"></div>
-      </div>
-      <p style="font-size:13px;color:var(--txt-m);margin-bottom:12px;">Select your name from the team list to link your account:</p>
-      <div class="form-group">
-        <label>I am…</label>
-        <ul class="select-list" id="member-list"></ul>
-        <div class="error-msg" id="err-member"></div>
-      </div>
-      <div class="form-group">
-        <label>Set 6-digit PIN</label>
-        <input type="password" id="inp-reg-pin" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
-      </div>
-      <div class="form-group">
-        <label>Confirm PIN</label>
-        <input type="password" id="inp-reg-confirm" maxlength="6" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
-        <div class="error-msg" id="err-reg"></div>
-      </div>
-      <div class="login-actions">
-        <button class="btn btn-primary" onclick="doRegister()">Register & Sign In</button>
-        <button class="btn btn-ghost" onclick="goBack()">← Back</button>
-      </div>
-    </div>
-
-    <!-- Not found -->
-    <div id="step-notfound" class="hidden">
-      <p style="color:var(--warn);margin-bottom:16px;font-size:13px;">
-        Your email is not registered in the system. Please contact your admin:<br>
-        <strong>mohith_shenoyk01@infosys.com</strong>
-      </p>
-      <button class="btn btn-ghost" onclick="goBack()">← Back</button>
     </div>
   </div>
 </div>
@@ -454,10 +415,10 @@ try { currentUser = JSON.parse(localStorage.getItem('att_user')); } catch {}
 
 let curYear   = 2026;
 let curMonth  = new Date().getMonth() + 1; // 1-12
-let teamData  = [];     // [{id, name, email, role, is_active}]
+let teamData  = [];     // [{id, name, role, is_active}]
 let attData   = {};     // { "userId_date": status }
 let holidays  = new Set(); // set of date strings
-let selectedMemberId = null; // for register flow
+let selectedUser = null;  // { id, name, role, has_pin } — active login selection
 let sse       = null;
 
 const MONTHS = ['January','February','March','April','May','June',
@@ -503,7 +464,7 @@ function logout() {
 
 // ── Login flow ────────────────────────────────────────────────────────────────
 function showStep(id) {
-  ['step-email','step-login','step-setpin','step-register','step-notfound']
+  ['step-select','step-login','step-setpin']
     .forEach(s => document.getElementById(s).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
@@ -515,51 +476,53 @@ function showErr(id, msg) {
 }
 function clearErr(id) { const el = document.getElementById(id); el.textContent=''; el.classList.remove('show'); }
 
-function goBack() { showStep('step-email'); selectedMemberId = null; }
+function goBack() { showStep('step-select'); selectedUser = null; }
 
-async function checkEmail() {
-  clearErr('err-email');
-  const email = document.getElementById('inp-email').value.trim();
-  if (!email) { showErr('err-email','Enter your email'); return; }
+function roleBadge(role) {
+  const label = { admin: 'Admin', member: 'Team Member', viewer: 'Viewer' }[role] || role;
+  const cls   = { admin: 'pill-ok', member: 'pill-blue', viewer: 'pill-warn' }[role] || '';
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+async function loadUserList() {
   try {
-    const r = await api('POST','/api/auth/check-email',{ email });
-    if (r.status === 'registered') {
-      document.getElementById('disp-email-login').textContent = email;
-      showStep('step-login');
-    } else if (r.status === 'needs-pin') {
-      document.getElementById('disp-email-setpin').textContent = email;
-      showStep('step-setpin');
-    } else if (r.status === 'unregistered') {
-      document.getElementById('disp-email-reg').textContent = email;
-      const ul = document.getElementById('member-list');
-      ul.innerHTML = '';
-      r.unregistered.forEach(m => {
-        const li = document.createElement('li');
-        li.textContent = m.name;
-        li.dataset.id = m.id;
-        li.onclick = () => {
-          ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
-          li.classList.add('selected');
-          selectedMemberId = m.id;
-        };
-        ul.appendChild(li);
-      });
-      if (!r.unregistered.length) {
-        ul.innerHTML = '<li style="color:var(--txt-m);cursor:default;">All members registered</li>';
-      }
-      showStep('step-register');
-    } else {
-      showStep('step-notfound');
-    }
-  } catch(e) { showErr('err-email', e.message); }
+    const users = await api('GET', '/api/auth/users');
+    const ul = document.getElementById('user-list');
+    ul.innerHTML = '';
+    users.forEach(u => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${u.name}</span>${roleBadge(u.role)}`;
+      li.onclick = () => {
+        ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
+        li.classList.add('selected');
+        selectedUser = u;
+        clearErr('err-select');
+      };
+      ul.appendChild(li);
+    });
+  } catch(e) { showErr('err-select', 'Could not load user list: ' + e.message); }
+}
+
+function continueFromSelect() {
+  if (!selectedUser) { showErr('err-select', 'Please select your name'); return; }
+  const badge = roleBadge(selectedUser.role);
+  if (selectedUser.has_pin) {
+    document.getElementById('disp-selected-user').innerHTML = `${selectedUser.name} ${badge}`;
+    document.getElementById('inp-pin').value = '';
+    showStep('step-login');
+  } else {
+    document.getElementById('disp-selected-user-pin').innerHTML = `${selectedUser.name} ${badge}`;
+    document.getElementById('inp-new-pin').value = '';
+    document.getElementById('inp-confirm-pin').value = '';
+    showStep('step-setpin');
+  }
 }
 
 async function doLogin() {
   clearErr('err-pin');
-  const email = document.getElementById('inp-email').value.trim();
-  const pin   = document.getElementById('inp-pin').value;
+  const pin = document.getElementById('inp-pin').value;
   try {
-    const r = await api('POST','/api/auth/login',{ email, pin });
+    const r = await api('POST', '/api/auth/login', { user_id: selectedUser.id, pin });
     setSession(r);
     startApp();
   } catch(e) { showErr('err-pin', e.message); }
@@ -567,27 +530,13 @@ async function doLogin() {
 
 async function doSetPin() {
   clearErr('err-setpin');
-  const email = document.getElementById('inp-email').value.trim();
-  const pin   = document.getElementById('inp-new-pin').value;
-  const conf  = document.getElementById('inp-confirm-pin').value;
+  const pin  = document.getElementById('inp-new-pin').value;
+  const conf = document.getElementById('inp-confirm-pin').value;
   try {
-    const r = await api('POST','/api/auth/set-pin',{ email, pin, confirm_pin: conf });
+    const r = await api('POST', '/api/auth/set-pin', { user_id: selectedUser.id, pin, confirm_pin: conf });
     setSession(r);
     startApp();
   } catch(e) { showErr('err-setpin', e.message); }
-}
-
-async function doRegister() {
-  clearErr('err-reg');
-  if (!selectedMemberId) { clearErr('err-member'); showErr('err-member','Select your name'); return; }
-  const email = document.getElementById('inp-email').value.trim();
-  const pin   = document.getElementById('inp-reg-pin').value;
-  const conf  = document.getElementById('inp-reg-confirm').value;
-  try {
-    const r = await api('POST','/api/auth/register',{ email, user_id: selectedMemberId, pin, confirm_pin: conf });
-    setSession(r);
-    startApp();
-  } catch(e) { showErr('err-reg', e.message); }
 }
 
 // ── App bootstrap ─────────────────────────────────────────────────────────────
@@ -1166,17 +1115,14 @@ function connectSSE() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Keyboard shortcuts
-  document.getElementById('inp-email').addEventListener('keydown', e => { if (e.key==='Enter') checkEmail(); });
   document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
   document.getElementById('inp-confirm-pin').addEventListener('keydown', e => { if (e.key==='Enter') doSetPin(); });
-  document.getElementById('inp-reg-confirm').addEventListener('keydown', e => { if (e.key==='Enter') doRegister(); });
 
   if (token && currentUser) {
-    // Resume session
     startApp().catch(() => { logout(); });
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
+    loadUserList();
   }
 });
 </script>
