@@ -7,9 +7,8 @@ const path    = require('node:path');
 const fs      = require('node:fs');
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const PORT        = process.env.PORT || 3456;
-const ADMIN_EMAIL = 'mohith_shenoyk01@infosys.com';
-const USE_PG      = !!process.env.DATABASE_URL;
+const PORT   = process.env.PORT || 3456;
+const USE_PG = !!process.env.DATABASE_URL;
 
 // JWT_SECRET: env var required on Render for stable tokens across restarts
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
@@ -83,11 +82,7 @@ const TEAM_MEMBERS = [
   'Aditi Magdum', 'Vaishnavi Limaye', 'Akanksha Jain', 'Bhakti Sheth',
   'Aman Raj',     'Shruti Mehta',     'Sayan Mondal',  'Akanksha Gupta',
 ];
-const VIEWERS = [
-  { email: 'asutosh_kar@infosys.com',      name: 'Asutosh Kar'      },
-  { email: 'kumaran_palani@infosys.com',   name: 'Kumaran Palani'   },
-  { email: 'jisha_sasidharan@infosys.com', name: 'Jisha Sasidharan' },
-];
+const VIEWER_NAMES = ['Asutosh Kar', 'Kumaran Palani', 'Jisha Sasidharan'];
 
 async function initDb() {
   if (USE_PG) {
@@ -148,11 +143,11 @@ async function initDb() {
 
   // Seed admin
   await db.run(
-    "INSERT INTO users (email, name, role) VALUES (?,?,'admin') ON CONFLICT (email) DO NOTHING",
-    [ADMIN_EMAIL, 'Mohith Shenoyk']
+    "INSERT INTO users (name, role) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = ?)",
+    ['Mohith Shenoyk', 'admin', 'Mohith Shenoyk']
   );
 
-  // Seed team members (no unique constraint on name — use NOT EXISTS guard)
+  // Seed team members
   for (const name of TEAM_MEMBERS) {
     await db.run(
       'INSERT INTO users (name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = ?)',
@@ -161,12 +156,15 @@ async function initDb() {
   }
 
   // Seed viewers
-  for (const v of VIEWERS) {
+  for (const name of VIEWER_NAMES) {
     await db.run(
-      "INSERT INTO users (email, name, role) VALUES (?,?,'viewer') ON CONFLICT (email) DO NOTHING",
-      [v.email, v.name]
+      "INSERT INTO users (name, role) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = ?)",
+      [name, 'viewer', name]
     );
   }
+
+  // Authentication is now name/PIN-based — clear any stored emails
+  await db.run("UPDATE users SET email = NULL WHERE email IS NOT NULL");
 }
 
 // ── Express ───────────────────────────────────────────────────────────────────
@@ -208,73 +206,46 @@ function broadcast(type, data) {
 }
 
 // ── Auth routes ───────────────────────────────────────────────────────────────
-app.post('/api/auth/check-email', async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email || !email.toLowerCase().endsWith('@infosys.com'))
-      return res.status(400).json({ error: 'Please use your Infosys email (@infosys.com)' });
-    const e    = email.toLowerCase();
-    const user = await db.get('SELECT id, name, role, pin_hash FROM users WHERE email = ?', [e]);
-    if (!user) {
-      const unregistered = await db.all("SELECT id, name FROM users WHERE email IS NULL AND role = 'member' ORDER BY name");
-      return res.json({ status: 'unregistered', unregistered });
-    }
-    return res.json({ status: user.pin_hash ? 'registered' : 'needs-pin', name: user.name, role: user.role });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/auth/register', async (req, res) => {
+// Public: list all active users for the login selection screen
+app.get('/api/auth/users', async (req, res) => {
   try {
-    const { email, user_id, pin, confirm_pin } = req.body;
-    if (!email?.toLowerCase().endsWith('@infosys.com'))
-      return res.status(400).json({ error: 'Must use @infosys.com email' });
-    if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin))
-      return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
-    if (pin !== confirm_pin)
-      return res.status(400).json({ error: 'PINs do not match' });
-    const e = email.toLowerCase();
-    if (await db.get('SELECT id FROM users WHERE email = ?', [e]))
-      return res.status(400).json({ error: 'Email already registered' });
-    const slot = await db.get('SELECT id, name, role FROM users WHERE id = ? AND email IS NULL', [user_id]);
-    if (!slot) return res.status(404).json({ error: 'Team member slot not found or already claimed' });
-    await db.run('UPDATE users SET email = ?, pin_hash = ? WHERE id = ?', [e, hashPin(pin), slot.id]);
-    const token = signToken({ id: slot.id, email: e, name: slot.name, role: slot.role });
-    res.json({ token, user: { id: slot.id, email: e, name: slot.name, role: slot.role } });
+    const rows = await db.all(`
+      SELECT id, name, role, pin_hash IS NOT NULL as has_pin
+      FROM users WHERE is_active = 1
+      ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'member' THEN 1 ELSE 2 END, name
+    `);
+    res.json(rows.map(u => ({ id: u.id, name: u.name, role: u.role, has_pin: !!u.has_pin })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/auth/set-pin', async (req, res) => {
   try {
-    const { email, pin, confirm_pin } = req.body;
-    if (!email?.toLowerCase().endsWith('@infosys.com'))
-      return res.status(400).json({ error: 'Must use @infosys.com email' });
+    const { user_id, pin, confirm_pin } = req.body;
     if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin))
       return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
     if (pin !== confirm_pin)
       return res.status(400).json({ error: 'PINs do not match' });
-    const e    = email.toLowerCase();
-    const user = await db.get('SELECT id, name, role, pin_hash FROM users WHERE email = ?', [e]);
+    const user = await db.get('SELECT id, name, role, pin_hash FROM users WHERE id = ? AND is_active = 1', [user_id]);
     if (!user)         return res.status(404).json({ error: 'User not found' });
     if (user.pin_hash) return res.status(400).json({ error: 'PIN already set. Use login instead.' });
     await db.run('UPDATE users SET pin_hash = ? WHERE id = ?', [hashPin(pin), user.id]);
-    const token = signToken({ id: user.id, email: e, name: user.name, role: user.role });
-    res.json({ token, user: { id: user.id, email: e, name: user.name, role: user.role } });
+    const token = signToken({ id: user.id, name: user.name, role: user.role });
+    res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, pin } = req.body;
-    if (!email?.toLowerCase().endsWith('@infosys.com'))
-      return res.status(400).json({ error: 'Must use @infosys.com email' });
-    const e    = email.toLowerCase();
-    const user = await db.get('SELECT id, name, role, pin_hash, is_active FROM users WHERE email = ?', [e]);
-    if (!user)           return res.status(401).json({ error: 'Not registered. Contact your admin.' });
+    const { user_id, pin } = req.body;
+    if (!user_id) return res.status(400).json({ error: 'User ID required' });
+    const user = await db.get('SELECT id, name, role, pin_hash, is_active FROM users WHERE id = ?', [user_id]);
+    if (!user)           return res.status(401).json({ error: 'User not found.' });
     if (!user.is_active) return res.status(401).json({ error: 'Account deactivated. Contact admin.' });
-    if (!user.pin_hash)  return res.status(401).json({ error: 'PIN not set. Please use "Set PIN" flow.' });
+    if (!user.pin_hash)  return res.status(401).json({ error: 'PIN not set yet. Please set your PIN first.' });
     if (user.pin_hash !== hashPin(pin)) return res.status(401).json({ error: 'Invalid PIN' });
-    const token = signToken({ id: user.id, email: e, name: user.name, role: user.role });
-    res.json({ token, user: { id: user.id, email: e, name: user.name, role: user.role } });
+    const token = signToken({ id: user.id, name: user.name, role: user.role });
+    res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
