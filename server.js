@@ -463,7 +463,6 @@ app.post('/api/admin/users/:id/reset-pin', auth, adminOnly, async (req, res) => 
 initDb()
   .then(() => app.listen(PORT, () => {
     console.log(`\n  Attendance Tracker  →  http://localhost:${PORT}`);
-    console.log(`  Admin               →  ${ADMIN_EMAIL}`);
     console.log(`  Database            →  ${USE_PG ? 'PostgreSQL (Render)' : 'SQLite (local)'}\n`);
   }))
   .catch(err => { console.error('\n  DB init failed:', err.message); process.exit(1); });
